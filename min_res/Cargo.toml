@@ -1,5 +1,5 @@
 [package]
-name = "small_font"
+name = "legible_font_min_res"
 version = "0.1.0"
 edition = "2021"
 
