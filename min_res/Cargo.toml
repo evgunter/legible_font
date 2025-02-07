@@ -3,4 +3,5 @@ name = "legible_font_min_res"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
+[features]
+human_readable = []
