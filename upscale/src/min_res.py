@@ -36,8 +36,8 @@ def get_boards():
         dims_str, boards_str = f.read().splitlines()
         n, m = json.loads(dims_str)
         boards = json.loads(boards_str)
-    return [decode_board(board, n, m) for board in boards]
+    return [decode_board(board, n, m) for board in boards], (n, m)
 
 if __name__ == "__main__":
-    boards = get_boards()
+    boards, _ = get_boards()
     display_boards(boards)
