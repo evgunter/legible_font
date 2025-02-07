@@ -1,3 +1,9 @@
+// to create a character set which is easily distinguishable, we will use a pretrained vision model to embed
+// the candidate characters, and then optimize such that the embeddings are far away from each other.
+// in particular, we will find the configuration of characters c_i which minimizes the "energy"
+// sum_{i < j} 1/||embed(c_i) - embed(c_j)||
+
+
 use anyhow::Result;
 use candle_core::{DType, Device, Tensor, Module};
 use candle_nn::{VarBuilder, VarMap, Optimizer, SGD};
