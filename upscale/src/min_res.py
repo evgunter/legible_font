@@ -26,17 +26,23 @@ def display_boards(boards):
         ax.axis("off")
         if i >= len(boards):
             continue
-        # true is black and false is white, so we need to reverse the automatic bool -> int conversion
-        ax.imshow(1 - boards[i], cmap="gray")
+        ax.imshow(boards[i], cmap="gray")
     plt.show()
 
-def get_boards():
-    """load the boards from the file"""
+def get_boards_bool():
+    """load the boards from the file and return them as a list of n x m binary matrices where true is black and false is white"""
     with open(BOARDS_PATH, "r") as f:
         dims_str, boards_str = f.read().splitlines()
         n, m = json.loads(dims_str)
         boards = json.loads(boards_str)
-    return [decode_board(board, n, m) for board in boards], (n, m)
+    return np.array([decode_board(board, n, m) for board in boards]), (n, m)
+
+def get_boards():
+    """load the boards from the file and return them as a list of n x m float matrices"""
+    bool_boards, (n, m) = get_boards_bool()
+    # true is black and false is white, so we need to reverse the automatic bool -> int conversion
+    return 1 - bool_boards.astype(float), (n, m)
+
 
 if __name__ == "__main__":
     boards, _ = get_boards()
