@@ -50,16 +50,10 @@ impl Board<bool> for i16 {
             let mat = b.to_matrix();
 
             // ensure shift-invariance: check that the character cannot be moved further to the top left:
-            'firstcol: for i in 0..N {
-                if mat[i][0] {
-                    break 'firstcol;
-                }
+            if mat.iter().all(|row| !row[0]) {  // skip if the first column is empty
                 continue 'board;
             }
-            'firstrow: for j in 0..M {
-                if mat[0][j] {
-                    break 'firstrow;
-                }
+            if mat[0].iter().all(|&x| !x) {  // skip if the first row is empty
                 continue 'board;
             }
 
@@ -81,20 +75,11 @@ impl Board<bool> for i16 {
 
             // we already checked that the first row and column are occupied,
             // so to check that it doesn't fit in an (N-1) x (M-1) square,
-            // it suffices to check that one of the last row and column is occupied
-            'scaleinvariance: {
-                for i in 0..N {
-                    if mat[i][M-1] {
-                        break 'scaleinvariance;
-                    }
-                }
-                for j in 0..M {
-                    if mat[N-1][j] {
-                        break 'scaleinvariance;
-                    }
-                }
+            // it suffices to check that the last row and column are not both empty:
+            if mat[N-1].iter().all(|&x| !x) && mat.iter().all(|row| !row[M-1]) {
                 continue 'board;
             }
+
             boards.push(b);
         }
         boards

@@ -92,7 +92,7 @@ class OptimizableImages(torch.nn.Module):
         return out
 
     def loss(self):
-        return self.loss_embeddings() + self.structure.loss(self) + loss_continuity(self)
+        return 10 * self.loss_embeddings() + self.structure.loss(self) + loss_continuity(self) + loss_figural(self)
     
 class StructureAndInitializer:
     @abstractmethod
@@ -139,7 +139,7 @@ class DownscaleAndInitialUpscale(StructureAndInitializer):
         loss term to impose the requirement that coarse-graining the images leads to a certain result
         (the base boards from min_res); does so by linearly penalizing any pixel values that are between the thresholds
         """
-        threshold_low = 0.8   # black
+        threshold_low = 0.5   # black
         threshold_high = 1.0  # white
         currs = downscale_images(optimizable_images.images(), self.scale_factor)
 
@@ -155,6 +155,16 @@ class DownscaleAndInitialUpscale(StructureAndInitializer):
         out = self.loss_more_gap(optimizable_images)
         print(f"structure loss  {out}")  # TODO remove
         return out
+
+class DownscaleAndInitialRandom(DownscaleAndInitialUpscale):
+    def __init__(self, boards):
+        super().__init__(boards, noise_scale=0)
+
+    def initializer(self):
+        b, c, _, _ = self.boards.shape
+        return torch.randn(b, c, *IMAGE_SIZE)
+    
+    # loss is as in DownscaleAndInitialUpscale
 
 class NoStructureAndInitialRandom(StructureAndInitializer):
     def __init__(self, n_images):
@@ -188,7 +198,9 @@ def loss_adjacent_change_sublinear(optimizable_images):
     # verify that none of the differences are > 1
     assert torch.all(horizontal_loss <= 1)
     assert torch.all(vertical_loss <= 1)
-    scale_fn = lambda x: x - x**2/3  # monotonic and sublinear on [0, 1]  # TODO: i had x**2/2 but i'm concerned that the 0 gradient at difference 1 might be a problem
+    # monotonic and sublinear on [0, 1]
+    # scale_fn = lambda x: x - x**2/3  # TODO: i had x**2/2 but i'm concerned that the 0 gradient at difference 1 might be a problem
+    scale_fn = lambda x: x - x**2/2
     return torch.mean(scale_fn(horizontal_loss)) + torch.mean(scale_fn(vertical_loss))
 
 def loss_high_frequency(optimizable_images):
@@ -207,8 +219,18 @@ def loss_continuity(optimizable_images):
     """
     loss term to try to make the characters have discernable figures
     """
-    out = loss_adjacent_change(optimizable_images)
+    out = loss_adjacent_change_sublinear(optimizable_images)
     print(f"continuity loss {out}")  # TODO remove
+    return out
+
+def loss_figural(optimizable_images):
+    """
+    loss term to make the characters have sharper boundaries between black and white;
+    penalizes intermediate values between black and white according to x(1-x)
+    """
+    images = optimizable_images.images()
+    out = torch.mean(images * (1 - images))
+    print(f"figural loss   {out}")  # TODO remove
     return out
 
 def upscale_images(images: torch.Tensor, scale_factor: int) -> torch.Tensor:
@@ -225,11 +247,12 @@ def main():
     x, y = IMAGE_SIZE
     assert n / m == x / y, f"boards have aspect ratio {n/m}, images have aspect ratio {x/y}"
 
-    # boards = boards[:10]  # TODO remove: train more quickly for debugging
+    # boards = boards[:10]  # TODO remove: train more quickly for testing
 
     n_images = len(boards)
     # image_initializer = NoStructureAndInitialRandom(n_images)
-    image_initializer = DownscaleAndInitialUpscale(boards, noise_scale=10)
+    # image_initializer = DownscaleAndInitialUpscale(boards, noise_scale=10)
+    image_initializer = DownscaleAndInitialRandom(boards)
 
     device = "cpu"
     model = torch.hub.load(REPO_ID, MODEL_ID)
@@ -242,7 +265,7 @@ def main():
     width = n_images // height + 1
     fig, axes = plt.subplots(height, width, figsize=(height/2, width/2))
 
-    for i in range(1000):
+    for i in range(500):
         if i % 1 == 0:
             # display the current images with matplotlib
 
