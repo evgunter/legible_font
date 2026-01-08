@@ -1,5 +1,6 @@
 import os
 import sys
+from PIL import Image
 from main import REPO_ID, MODEL_ID, upscale_images, downscale_images, IMAGE_SIZE, OptimizableImages, DownscaleAndInitialUpscale, NoStructureAndInitialRandom
 from min_res import get_boards
 import torch
@@ -12,8 +13,6 @@ TEST_IMAGE_DIR = os.path.abspath(TEST_IMAGE_DIR)
 def test_similarities():
     """verify that img1.jpg and img1_modified.jpg are much more similar to each other than to img2.
     requires loading the model, so takes a few seconds"""
-    from PIL import Image
-
     # load images, process them for input into the model, load the model, get the embeddings, and find the distances between them
     original_images = [Image.open(os.path.join(TEST_IMAGE_DIR, filename)) for filename in ["img1.jpg", "img1_modified.jpg", "img2.jpg"]]
     scaled_images = [img.resize((14*20, 14*20)) for img in original_images]
@@ -98,10 +97,4 @@ if __name__ == "__main__":
     test_model_input_images()
 
     if SLOW:
-        try:
-            import PIL  # noqa: F401
-        except ModuleNotFoundError as exc:
-            raise ModuleNotFoundError(
-                "PIL (Pillow) is required for --slow tests; install it to run test_similarities."
-            ) from exc
         test_similarities()
