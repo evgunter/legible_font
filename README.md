@@ -24,3 +24,12 @@ Here are the results of training according to this scheme:
 
 These figures are reasonably visually distinct, but they are less figural than existing character sets.
 I'm considering optimizing the parameters of a set of Bézier curves directly in order to get a result that looks more like a standard character set.
+
+### Development
+The `upscale` project uses `uv` for dependency management. After installing `uv`, run:
+
+```
+cd upscale
+uv sync
+uv run python src/tests.py
+```
