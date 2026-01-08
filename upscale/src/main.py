@@ -51,10 +51,10 @@ class OptimizableImages(torch.nn.Module):
 
     def embedding_distances(self):
         embeddings = self.get_embeddings()
-        distances = einops.rearrange(torch.cdist(einops.rearrange(embeddings, "b d -> 1 b d"), einops.rearrange(embeddings, "b d -> 1 b d")), "1 b1 b2 -> b1 b2")
+        distances = einops.rearrange(torch.cdist(einops.rearrange(embeddings, "b d -> 1 b d"), einops.rearrange(embeddings, "b d -> 1 b d"), compute_mode='donot_use_mm_for_euclid_dist'), "1 b1 b2 -> b1 b2")
 
         # assert that the distances on the diagonal are all zero (should be comparing each embedding to itself)
-        assert torch.all(distances.diagonal().abs() < 0.1), f"large diagonal elements: {distances.diagonal()}"  # TODO: i'm not sure why these are not exactly zero. this behavior only happens for n_images > 20 or so
+        assert torch.all(distances.diagonal().abs() < 1e-4), f"large diagonal elements: {distances.diagonal()}"
         return distances
 
     def loss_min(self):
