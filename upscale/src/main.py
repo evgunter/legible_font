@@ -125,7 +125,7 @@ class DownscaleAndInitialUpscale(StructureAndInitializer):
         # since the internal image data is not scaled, we need to undo the sigmoid that will be applied later
         # it may help training to start out with brights and darks not that saturated by having a largish eps
         eps = 0.01
-        return - torch.logit(images, eps=eps) * math.log(0.5) + self.noise_scale * torch.randn_like(images)
+        return torch.logit(images, eps=eps) + self.noise_scale * torch.randn_like(images)
 
     def loss_l2(self, optimizable_images):
         """

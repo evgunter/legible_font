@@ -13,7 +13,6 @@ TEST_IMAGE_DIR = os.path.abspath(TEST_IMAGE_DIR)
 def test_similarities():
     """verify that img1.jpg and img1_modified.jpg are much more similar to each other than to img2.
     requires loading the model, so takes a few seconds"""
-
     # load images, process them for input into the model, load the model, get the embeddings, and find the distances between them
     original_images = [Image.open(os.path.join(TEST_IMAGE_DIR, filename)) for filename in ["img1.jpg", "img1_modified.jpg", "img2.jpg"]]
     scaled_images = [img.resize((14*20, 14*20)) for img in original_images]
@@ -51,6 +50,16 @@ def test_image_initializer_downscale():
     image_initializer = DownscaleAndInitialUpscale(torch.randn(10, 3, 3).numpy())
     OptimizableImages(image_initializer, None, "cpu")
 
+def test_image_initializer_round_trip():
+    """verify that the initializer inverts sigmoid for upscaled boards (no noise)"""
+    boards = (torch.rand(4, 3, 3) > 0.5).float().numpy()
+    image_initializer = DownscaleAndInitialUpscale(boards, noise_scale=0)
+    init_images = torch.sigmoid(image_initializer.initializer())
+    expected = upscale_images(image_initializer.boards, image_initializer.scale_factor)
+    # tolerance must be >= eps used in initializer's torch.logit call (currently 0.01)
+    # since logit clamps inputs to [eps, 1-eps], binary values 0/1 become ~0.01/0.99 after round-trip
+    assert torch.allclose(init_images, expected, atol=0.01)
+
 def test_board_aspect_ratio():
     """check that the boards have the same aspect ratio as the images"""
     _, (n, m) = get_boards()
@@ -85,6 +94,7 @@ if __name__ == "__main__":
     test_scaling()
     test_image_initializer_random()
     test_image_initializer_downscale()
+    test_image_initializer_round_trip()
     test_board_aspect_ratio()
     test_model_input_images()
 
