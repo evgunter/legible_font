@@ -1,0 +1,17 @@
+[project]
+name = "upscale"
+version = "0.1.0"
+description = "Upscaling experiments for legible font generation."
+readme = "../README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "einops>=0.7.0",
+  "matplotlib>=3.8.0",
+  "numpy>=1.24.0",
+  "pillow>=10.0.0",
+  "torch>=2.0.0",
+  "torchvision>=0.15.0",
+]
+
+[tool.uv]
+package = false
