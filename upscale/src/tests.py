@@ -56,7 +56,9 @@ def test_image_initializer_round_trip():
     image_initializer = DownscaleAndInitialUpscale(boards, noise_scale=0)
     init_images = torch.sigmoid(image_initializer.initializer())
     expected = upscale_images(image_initializer.boards, image_initializer.scale_factor)
-    assert torch.allclose(init_images, expected, atol=1e-6)
+    # tolerance must be >= eps used in initializer's torch.logit call (currently 0.01)
+    # since logit clamps inputs to [eps, 1-eps], binary values 0/1 become ~0.01/0.99 after round-trip
+    assert torch.allclose(init_images, expected, atol=0.01)
 
 def test_board_aspect_ratio():
     """check that the boards have the same aspect ratio as the images"""
