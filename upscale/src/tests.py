@@ -51,6 +51,14 @@ def test_image_initializer_downscale():
     image_initializer = DownscaleAndInitialUpscale(torch.randn(10, 3, 3).numpy())
     OptimizableImages(image_initializer, None, "cpu")
 
+def test_image_initializer_round_trip():
+    """verify that the initializer inverts sigmoid for upscaled boards (no noise)"""
+    boards = (torch.rand(4, 3, 3) > 0.5).float().numpy()
+    image_initializer = DownscaleAndInitialUpscale(boards, noise_scale=0)
+    init_images = torch.sigmoid(image_initializer.initializer())
+    expected = upscale_images(image_initializer.boards, image_initializer.scale_factor)
+    assert torch.allclose(init_images, expected, atol=1e-6)
+
 def test_board_aspect_ratio():
     """check that the boards have the same aspect ratio as the images"""
     _, (n, m) = get_boards()
@@ -85,6 +93,7 @@ if __name__ == "__main__":
     test_scaling()
     test_image_initializer_random()
     test_image_initializer_downscale()
+    test_image_initializer_round_trip()
     test_board_aspect_ratio()
     test_model_input_images()
 
