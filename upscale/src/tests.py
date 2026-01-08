@@ -1,64 +1,17 @@
 import os
 import sys
-import importlib
+from main import REPO_ID, MODEL_ID, upscale_images, downscale_images, IMAGE_SIZE, OptimizableImages, DownscaleAndInitialUpscale, NoStructureAndInitialRandom
+from min_res import get_boards
+import torch
+import numpy as np
+from torchvision import transforms
 
 TEST_IMAGE_DIR = os.path.join(os.path.dirname(__file__), "../../test_data")
 TEST_IMAGE_DIR = os.path.abspath(TEST_IMAGE_DIR)
 
-def _require_deps():
-    try:
-        torch = importlib.import_module("torch")
-        np = importlib.import_module("numpy")
-        transforms = importlib.import_module("torchvision.transforms")
-    except ModuleNotFoundError as exc:
-        raise ModuleNotFoundError(
-            "Missing test dependency. Install torch, torchvision, and numpy to run the tests."
-        ) from exc
-
-    from main import (
-        REPO_ID,
-        MODEL_ID,
-        upscale_images,
-        downscale_images,
-        IMAGE_SIZE,
-        OptimizableImages,
-        DownscaleAndInitialUpscale,
-        NoStructureAndInitialRandom,
-    )
-    from min_res import get_boards
-
-    return (
-        torch,
-        np,
-        transforms,
-        REPO_ID,
-        MODEL_ID,
-        upscale_images,
-        downscale_images,
-        IMAGE_SIZE,
-        OptimizableImages,
-        DownscaleAndInitialUpscale,
-        NoStructureAndInitialRandom,
-        get_boards,
-    )
-
 def test_similarities():
     """verify that img1.jpg and img1_modified.jpg are much more similar to each other than to img2.
     requires loading the model, so takes a few seconds"""
-    (
-        torch,
-        _np,
-        transforms,
-        REPO_ID,
-        MODEL_ID,
-        _upscale_images,
-        _downscale_images,
-        _IMAGE_SIZE,
-        _OptimizableImages,
-        _DownscaleAndInitialUpscale,
-        _NoStructureAndInitialRandom,
-        _get_boards,
-    ) = _require_deps()
     from PIL import Image
 
     # load images, process them for input into the model, load the model, get the embeddings, and find the distances between them
@@ -85,77 +38,21 @@ def test_similarities():
 
 def test_scaling():
     """verify that upscaling and downscaling the images does not change them"""
-    (
-        torch,
-        _np,
-        _transforms,
-        _REPO_ID,
-        _MODEL_ID,
-        upscale_images,
-        downscale_images,
-        _IMAGE_SIZE,
-        _OptimizableImages,
-        _DownscaleAndInitialUpscale,
-        _NoStructureAndInitialRandom,
-        _get_boards,
-    ) = _require_deps()
     images = torch.randn(10, 3, 14, 14)
     assert torch.allclose(images, downscale_images(upscale_images(images, 20), 20))
 
 def test_image_initializer_random():
     """check that the random initializer does not error"""
-    (
-        _torch,
-        _np,
-        _transforms,
-        _REPO_ID,
-        _MODEL_ID,
-        _upscale_images,
-        _downscale_images,
-        _IMAGE_SIZE,
-        OptimizableImages,
-        _DownscaleAndInitialUpscale,
-        NoStructureAndInitialRandom,
-        _get_boards,
-    ) = _require_deps()
     image_initializer = NoStructureAndInitialRandom(10)
     OptimizableImages(image_initializer, None, "cpu")
 
 def test_image_initializer_downscale():
     """check that the downscale initializer does not error"""
-    (
-        torch,
-        _np,
-        _transforms,
-        _REPO_ID,
-        _MODEL_ID,
-        _upscale_images,
-        _downscale_images,
-        _IMAGE_SIZE,
-        OptimizableImages,
-        DownscaleAndInitialUpscale,
-        _NoStructureAndInitialRandom,
-        _get_boards,
-    ) = _require_deps()
     image_initializer = DownscaleAndInitialUpscale(torch.randn(10, 3, 3).numpy())
     OptimizableImages(image_initializer, None, "cpu")
 
 def test_image_initializer_round_trip():
     """verify that the initializer inverts sigmoid for upscaled boards (no noise)"""
-    (
-        torch,
-        _np,
-        _transforms,
-        _REPO_ID,
-        _MODEL_ID,
-        upscale_images,
-        _downscale_images,
-        _IMAGE_SIZE,
-        _OptimizableImages,
-        DownscaleAndInitialUpscale,
-        _NoStructureAndInitialRandom,
-        _get_boards,
-    ) = _require_deps()
     boards = (torch.rand(4, 3, 3) > 0.5).float().numpy()
     image_initializer = DownscaleAndInitialUpscale(boards, noise_scale=0)
     init_images = torch.sigmoid(image_initializer.initializer())
@@ -164,40 +61,12 @@ def test_image_initializer_round_trip():
 
 def test_board_aspect_ratio():
     """check that the boards have the same aspect ratio as the images"""
-    (
-        _torch,
-        _np,
-        _transforms,
-        _REPO_ID,
-        _MODEL_ID,
-        _upscale_images,
-        _downscale_images,
-        IMAGE_SIZE,
-        _OptimizableImages,
-        _DownscaleAndInitialUpscale,
-        _NoStructureAndInitialRandom,
-        get_boards,
-    ) = _require_deps()
     _, (n, m) = get_boards()
     x, y = IMAGE_SIZE
     assert n / m == x / y, f"boards have aspect ratio {n/m}, images have aspect ratio {x/y}"
 
 def test_model_input_images():
     """verify that .images() returns values between 0 and 1"""
-    (
-        _torch,
-        _np,
-        _transforms,
-        _REPO_ID,
-        _MODEL_ID,
-        _upscale_images,
-        _downscale_images,
-        _IMAGE_SIZE,
-        OptimizableImages,
-        _DownscaleAndInitialUpscale,
-        NoStructureAndInitialRandom,
-        _get_boards,
-    ) = _require_deps()
     image_initializer = NoStructureAndInitialRandom(10)
 
     opt_images = OptimizableImages(image_initializer, None, "cpu")
@@ -220,12 +89,6 @@ def test_model_input_images():
 if __name__ == "__main__":
     # check if the --slow flag is passed
     SLOW = "--slow" in sys.argv
-
-    try:
-        _require_deps()
-    except ModuleNotFoundError as exc:
-        print(f"Skipping tests: {exc}")
-        sys.exit(0)
 
     test_scaling()
     test_image_initializer_random()
