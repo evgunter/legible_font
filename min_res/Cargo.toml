@@ -5,3 +5,13 @@ edition = "2021"
 
 [features]
 human_readable = []
+
+[dependencies]
+rayon = "1.10"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "benchmarks"
+harness = false
